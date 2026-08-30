@@ -392,6 +392,7 @@ loginBtn.onclick = async () => {
     chatInput.disabled = false;
     sendBtn.disabled = false;
     summarizeBtn.disabled = false;
+    exportBtn.disabled = false;
     micBtn.disabled = false;
 
     statusDot.classList.remove('offline');
