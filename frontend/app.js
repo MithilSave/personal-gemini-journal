@@ -27,6 +27,7 @@ const userAvatar = document.getElementById('user-avatar');
 const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
 const summarizeBtn = document.getElementById('summarize-btn');
+const exportBtn = document.getElementById('export-btn');
 const micBtn = document.getElementById('mic-btn');
 const chatWindow = document.getElementById('chat-window');
 const welcomeScreen = document.getElementById('welcome-screen');
@@ -398,6 +399,24 @@ loginBtn.onclick = async () => {
     statusText.textContent = 'Authenticated & Encrypted';
 
     if (welcomeScreen) welcomeScreen.remove();
+
+    // Fetch personalized daily prompt from Gemini
+    try {
+      const promptRes = await fetch('/api/daily-prompt', { headers: { 'Authorization': `Bearer ${idToken}` }});
+      if (promptRes.ok) {
+        const promptData = await promptRes.json();
+        const promptCard = document.createElement('div');
+        promptCard.className = 'daily-prompt-card reveal-item';
+        promptCard.innerHTML = `
+          <div class="prompt-label">✨ Today's Personalized Prompt</div>
+          <div class="prompt-text">${promptData.prompt}</div>
+        `;
+        appendToChat(promptCard);
+      }
+    } catch (e) {
+      console.error('Daily prompt error:', e);
+    }
+
     showSystemMessage('Session initialized. What would you like to reflect on today?');
 
     loadSidebarHistory();
@@ -478,5 +497,38 @@ summarizeBtn.onclick = async () => {
     showSystemMessage('Failed to generate summary.');
   } finally {
     summarizeBtn.disabled = false;
+  }
+};
+
+// ---- Export: Download Journal as HTML Report ----
+exportBtn.onclick = async () => {
+  if (!currentJournalId || !idToken) {
+    showSystemMessage('Start a journal session first before exporting.');
+    return;
+  }
+  exportBtn.disabled = true;
+  showSystemMessage('Preparing export…');
+
+  try {
+    const res = await fetch(`/api/export/${currentJournalId}`, {
+      headers: { 'Authorization': `Bearer ${idToken}` }
+    });
+    if (!res.ok) throw new Error('Export failed');
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mindscribe-${currentJournalId.slice(0, 8)}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showSystemMessage('Journal exported! Open the HTML file in your browser and use Ctrl+P to save as PDF.');
+  } catch (err) {
+    showSystemMessage('Failed to export journal.');
+  } finally {
+    exportBtn.disabled = false;
   }
 };

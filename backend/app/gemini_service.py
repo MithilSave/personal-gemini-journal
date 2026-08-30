@@ -60,3 +60,43 @@ class GeminiJournalEngine:
             config=config
         )
         return CognitiveSummary(**json.loads(response.text))
+
+    def generate_daily_prompt(self, past_summaries: list[dict]) -> str:
+        """
+        Original Feature: AI-Generated Personalized Daily Prompt.
+        Uses the user's past journal summaries to create a contextual,
+        deeply personalized reflection question.
+        """
+        context = ""
+        if past_summaries:
+            recent = past_summaries[:5]  # Use last 5 sessions for context
+            context = "Here is a summary of the user's recent journal sessions:\n"
+            for s in recent:
+                context += f"- Title: {s.get('title', 'Untitled')}, Emotion: {s.get('primary_emotion', 'Unknown')}, Sentiment: {s.get('sentiment_score', 0)}\n"
+                if s.get('key_themes'):
+                    context += f"  Themes: {', '.join(s['key_themes'])}\n"
+            context += "\n"
+
+        prompt = (
+            f"{context}"
+            "Based on the user's recent emotional patterns and themes (or if no history exists, provide a universal prompt), "
+            "generate ONE deeply thoughtful, personalized journaling prompt that:\n"
+            "1. Acknowledges their recent emotional trajectory\n"
+            "2. Gently encourages growth or deeper exploration\n"
+            "3. Is open-ended and inviting, not clinical\n"
+            "4. Is 1-2 sentences max\n\n"
+            "Return ONLY the prompt text, nothing else."
+        )
+
+        config = types.GenerateContentConfig(
+            system_instruction="You are a warm, insightful journaling coach. Generate prompts that feel personal and meaningful.",
+            temperature=0.9,
+            max_output_tokens=150,
+        )
+
+        response = self.client.models.generate_content(
+            model="gemini-3.1-flash-lite",
+            contents=prompt,
+            config=config
+        )
+        return response.text.strip()
