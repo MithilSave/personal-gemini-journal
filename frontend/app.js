@@ -130,7 +130,13 @@ function createMessage(role, content) {
 
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
-  bubble.textContent = content;
+  
+  // Parse markdown for model responses if marked.js is loaded
+  if (role === 'model' && typeof marked !== 'undefined') {
+    bubble.innerHTML = marked.parse(content);
+  } else {
+    bubble.textContent = content;
+  }
 
   wrapper.appendChild(avatar);
   wrapper.appendChild(bubble);
