@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Multi-tenant containment rule
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Explicit global deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
